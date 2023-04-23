@@ -1,2 +1,2 @@
-idf_component_register(SRCS "power_save.c"
+idf_component_register(SRCS "wifi.c" "main.c"
                     INCLUDE_DIRS ".")
