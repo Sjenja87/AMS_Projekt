@@ -309,8 +309,8 @@ CONFIG_PARTITION_TABLE_MD5=y
 #
 # ASM_Projekt Configuration
 #
-CONFIG_WIFI_SSID="FTTH_DA3912"
-CONFIG_WIFI_PASSWORD="RysucJavoth8"
+CONFIG_WIFI_SSID="BenjasHotspot"
+CONFIG_WIFI_PASSWORD="3dd1ebcea58f"
 # end of ASM_Projekt Configuration
 
 #
