@@ -15,7 +15,7 @@
 OneWireBus * owb;
 owb_rmt_driver_info rmt_driver_info;
 OneWireBus_ROMCode device_rom_codes[MAX_OWB_DEVICES] = {0};
-DS18B20_Info devices[MAX_OWB_DEVICES] = {0};
+DS18B20_Info* devices[MAX_OWB_DEVICES] = {0};
 
 static const char *TAG = "tempReader";
 
@@ -67,12 +67,11 @@ void search_owb_for_sensors(){
 };
 
 void temp_sensors_read(){
-int num_devices =  sizeof(devices) / sizeof(devices[0]); 
-float temp[num_devices];
+float temp[MAX_OWB_DEVICES];
     ESP_LOGI(TAG,"Temperature readings (degrees C) from %d devices:\n", num_devices);
-    for (int i = 0; i < num_devices; ++i){
-        if(&devices[i] != NULL){
-                ds18b20_read_temp(&devices[i], &temp[i]);
+    for (int i = 0; i < MAX_OWB_DEVICES; ++i){
+        if(devices[i] != NULL){
+                ds18b20_read_temp(devices[i], &temp[i]);
                 ESP_LOGI(TAG," %d: %.3f\n", i, temp[i]);
                 
         }

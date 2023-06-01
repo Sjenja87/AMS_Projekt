@@ -46,5 +46,5 @@ void app_main(void)
     }
     
 
-    owb_uninitialize(owb);
+    //owb_uninitialize(owb);
 }
