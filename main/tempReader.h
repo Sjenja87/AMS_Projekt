@@ -6,7 +6,7 @@
 #include "ds18b20.h"
 
 void search_owb_for_sensors();
-void temp_sensors_read_task();
+void temp_sensors_read();
 void init_owb_for_sensors();
 
 #endif
