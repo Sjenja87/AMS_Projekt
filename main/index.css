@@ -1,0 +1,59 @@
+@import url(https://fonts.googleapis.com/css?family=Roboto);
+
+* {
+    -webkit-box-sizing: border-box;
+    -moz-box-sizing: border-box;
+    box-sizing: border-box;
+  }
+
+
+html {
+height: 100%;
+width:100%;
+}
+
+body {
+  height: 100%;
+  width:100%;
+	background-color: #b4c9ce;
+	font-family: 'Roboto', Arial;
+	padding: 0em;
+  letter-spacing: 0.10em;
+}
+
+.text1 {
+    padding: 1%;
+    margin: 1%;
+    padding-left: 8%
+}
+
+.Values {
+  color:#184650 ;
+}
+/* Chrome, Safari, Edge, Opera */
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+  width: 15%;
+  direction: rtl;
+}
+
+.container  {
+    margin: 20px 20px 20px 20px; 
+    float: left;
+    width: 400px;
+    height: fit-content;
+    box-shadow: 5px 2px 17px 0px rgba(45, 64, 89, 0.72);
+    border-radius: 20px;
+    background: linear-gradient(30deg, #2B4448 15% , #87806D 20%, #FAA45B 20%, #569DAC);
+    transition:.2s linear;
+    display: block;
+  }
+
+.parrent {
+    padding: 2%;
+    margin: 1%;
+}
+
+

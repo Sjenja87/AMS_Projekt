@@ -11,7 +11,32 @@ menu "ASM_Projekt Configuration"
         default "RysucJavoth8"
         help
             WiFi password (WPA or WPA2)  to use.
+            
+    config USE_SD_STORAGE
+        bool "Use SD card as storage"
+        default y
+        help
+            Choose to use SD card for storage.
 
+    config WEB_MOUNT_POINT
+        string "Website mount point in VFS (SD Card)"
+        default "/www"
+        help
+            Specify the mount point in VFS.
+    
+    config FORMAT_IF_MOUNT_FAILED
+        bool "Format the card if mount failed"
+        default y
+        help
+            If this config item is set, format_if_mount_failed will be set to true and the card will be formatted if
+            the mount has failed.
+
+    config MDNS_HOST_NAME
+        string "mDNS Host Name"
+        default "ams-projekt"
+        help
+            Specify the domain name used in the mDNS service.
+            Note that webpage also take it as a part of URL where it will send GET/POST requests to.
     # config EXAMPLE_WIFI_LISTEN_INTERVAL
     #     int "WiFi listen interval"
     #     default 3
