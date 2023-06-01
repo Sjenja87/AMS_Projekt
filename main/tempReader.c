@@ -7,15 +7,28 @@
 #include "esp_system.h"
 #include "esp_log.h"
 
-#define GPIO_DS18B20_PIN       (GPIO_NUM_1)
+#define GPIO_DS18B20_PIN  (GPIO_NUM_27)
 #define DS18B20_RESOLUTION   (DS18B20_RESOLUTION_9_BIT) // since this is a DS1820 and not DS18b20 it can only read in 9 bit. 
 #define SAMPLE_PERIOD        (1000)   // milliseconds
+#define MAX_OWB_DEVICES (8)
+
+OneWireBus * owb;
+owb_rmt_driver_info rmt_driver_info;
+OneWireBus_ROMCode device_rom_codes[MAX_OWB_DEVICES] = {0};
+DS18B20_Info devices[MAX_OWB_DEVICES] = {0};
 
 static const char *TAG = "tempReader";
 
+void init_owb_for_sensors()
+{
+    ESP_LOGI(TAG, "creating owb in main.");
+    owb = owb_rmt_initialize(&rmt_driver_info, GPIO_DS18B20_PIN, RMT_CHANNEL_1, RMT_CHANNEL_0);
+    owb_use_crc(owb, true);
+}
+
 // implemented with help from https://github.com/DavidAntliff/esp32-ds18b20-example/blob/master/main/app_main.c
 
-void search_owb_for_sensors(OneWireBus* owb, OneWireBus_ROMCode* device_rom_codes, DS18B20_Info* devices[]){
+void search_owb_for_sensors(){
     ESP_LOGI(TAG,"Looking for 1-wire divices...");
     int num_devices = 0;
     OneWireBus_SearchState search = {0};
@@ -53,12 +66,13 @@ void search_owb_for_sensors(OneWireBus* owb, OneWireBus_ROMCode* device_rom_code
     
 };
 
-void temp_sensors_read_task(DS18B20_Info* devices[], int num_devices){
+void temp_sensors_read(){
+int num_devices =  sizeof(devices) / sizeof(devices[0]); 
 float temp[num_devices];
     ESP_LOGI(TAG,"Temperature readings (degrees C) from %d devices:\n", num_devices);
     for (int i = 0; i < num_devices; ++i){
-        if(devices[i] != NULL){
-                ds18b20_read_temp(devices[i], &temp[i]);
+        if(&devices[i] != NULL){
+                ds18b20_read_temp(&devices[i], &temp[i]);
                 ESP_LOGI(TAG," %d: %.3f\n", i, temp[i]);
                 
         }

@@ -7,8 +7,7 @@
 
 void search_owb_for_sensors(OneWireBus* owb, OneWireBus_ROMCode* device_rom_codes, DS18B20_Info* devices[]);
 void temp_sensors_read_task(DS18B20_Info* devices[], int num_devices);
-
-
+void init_owb_for_sensors();
 
 
 
