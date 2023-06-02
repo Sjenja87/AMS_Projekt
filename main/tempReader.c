@@ -68,7 +68,7 @@ void search_owb_for_sensors(){
 
 void temp_sensors_read(){
 float temp[MAX_OWB_DEVICES];
-    ESP_LOGI(TAG,"Temperature readings (degrees C) from %d devices:\n", num_devices);
+    ESP_LOGI(TAG,"Temperature readings (degrees C) from %d devices:\n", MAX_OWB_DEVICES);
     for (int i = 0; i < MAX_OWB_DEVICES; ++i){
         if(devices[i] != NULL){
                 ds18b20_read_temp(devices[i], &temp[i]);

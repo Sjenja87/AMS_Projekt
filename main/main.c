@@ -36,13 +36,19 @@ void app_main(void)
     init_OLED();
     vTaskDelay(5000/portTICK_PERIOD_MS);
 
-    while (true)
-    {
-        xTaskCreate(&clear_oled_task, "clear_screen",  2048, NULL, 6, NULL);
+    char text[] = "Hello world!\nMulitine is OK!\nAnother line";
+    char text2[] = "Test";
+
+    while (true){
+        clear_oled();
         vTaskDelay(5000/portTICK_PERIOD_MS);
-        xTaskCreate(&oled_text_task, "oled_text_task",  2048, (void *)"Hello world!\nMulitine is OK!\nAnother line", 6, NULL);
+        oled_text(&text, false);
         vTaskDelay(5000/portTICK_PERIOD_MS);
-        temp_sensors_read();
+        oled_text(&text2, true);
+        vTaskDelay(5000/portTICK_PERIOD_MS);
+        
+        
+        //temp_sensors_read();
     }
     
 

@@ -1,6 +1,8 @@
 #ifndef _OLED_H_
 #define _OLED_H_
 
+#include <stdio.h>
+#include <stdint.h>
 
 // commands used in I2C coms with OLED have been taken from http://robotcantalk.blogspot.com/2015/03/interfacing-arduino-with-ssd1306-driven.html
 // Control byte
@@ -41,8 +43,10 @@
 
 void init_i2c_driver(void);
 void init_OLED(void);
-void clear_oled_task(void* ignore);
-void oled_text_task(const void *arg_text);
+void clear_oled(void);
+void oled_text(char *text, int inverted_bool);
+void _invert_text(uint8_t *buf, size_t buflen);
+void oled_println(char *text, int inverted, uint8_t cur_page);
 
 
 

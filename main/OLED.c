@@ -54,7 +54,7 @@ void init_OLED(void){
 	i2c_cmd_link_delete(cmd);
 }
 
-void clear_oled_task(void *ignore) {
+void clear_oled(void) {
 	i2c_cmd_handle_t cmd;
 
 	uint8_t zero[128] = {0};
@@ -71,61 +71,68 @@ void clear_oled_task(void *ignore) {
 		i2c_cmd_link_delete(cmd);
 	}
     ESP_LOGI(TAG, "Cleared screen.");
-
-	vTaskDelete(NULL);
 }
 
 
-void oled_text_task(const void *arg_text) {
-	char *text = (char*)arg_text;
+void oled_text(char *text, int inverted) {
+	// https://www.educative.io/answers/splitting-a-string-using-strtok-in-c
 	uint8_t text_len = strlen(text);
+	char dest[text_len];
+	strcpy(dest, text);
+	char * token = strtok(dest, "\n");
+	uint8_t cur_line = 0;
+	while( token != NULL ) {
+      oled_println(token, inverted, cur_line);
+	  ESP_LOGI(TAG, "Print out '%s' to display.", token);
+      token = strtok(NULL, "\n");
+	  cur_line++;
+   }
 
+}
+
+
+
+
+void oled_println(char *text, int inverted, uint8_t line){
+	uint8_t text_len = strlen(text);
 	i2c_cmd_handle_t cmd;
+	uint8_t letter[8];
 
-	uint8_t cur_page = 0;
-
+	// init coms
 	cmd = i2c_cmd_link_create();
 	i2c_master_start(cmd);
 	i2c_master_write_byte(cmd, (SLAVE_ADRESS_OLED) | I2C_MASTER_WRITE, true);
 
+	// set writing location on display.
 	i2c_master_write_byte(cmd, OLED_CONTROL_BYTE_CMD_STREAM, true);
 	i2c_master_write_byte(cmd, 0x00, true); // reset column
 	i2c_master_write_byte(cmd, 0x10, true);
-	i2c_master_write_byte(cmd, 0xB0 | cur_page, true); // reset page
+	i2c_master_write_byte(cmd, 0xB0 | line, true); // set line
 
 	i2c_master_stop(cmd);
 	i2c_master_cmd_begin(I2C_NUM_0, cmd, 10/portTICK_PERIOD_MS);
 	i2c_cmd_link_delete(cmd);
-
 	for (uint8_t i = 0; i < text_len; i++) {
-		if (text[i] == '\n') {
-			cmd = i2c_cmd_link_create();
-			i2c_master_start(cmd);
-			i2c_master_write_byte(cmd, (SLAVE_ADRESS_OLED) | I2C_MASTER_WRITE, true);
-
-			i2c_master_write_byte(cmd, OLED_CONTROL_BYTE_CMD_STREAM, true);
-			i2c_master_write_byte(cmd, 0x00, true); // reset column
-			i2c_master_write_byte(cmd, 0x10, true);
-			i2c_master_write_byte(cmd, 0xB0 | ++cur_page, true); // increment page
-
-			i2c_master_stop(cmd);
-			i2c_master_cmd_begin(I2C_NUM_0, cmd, 10/portTICK_PERIOD_MS);
-			i2c_cmd_link_delete(cmd);
-		} else {
+			memcpy(letter, font8x8_basic_tr[(uint8_t)text[i]], 8);
+			if (inverted > 0) _invert_text(letter, 8);
 			cmd = i2c_cmd_link_create();
 			i2c_master_start(cmd);
 			i2c_master_write_byte(cmd, (SLAVE_ADRESS_OLED) | I2C_MASTER_WRITE, true);
 
 			i2c_master_write_byte(cmd, OLED_CONTROL_BYTE_DATA_STREAM, true);
-			i2c_master_write(cmd, font8x8_basic_tr[(uint8_t)text[i]], 8, true);
+			i2c_master_write(cmd, letter, 8, true);
 
 			i2c_master_stop(cmd);
 			i2c_master_cmd_begin(I2C_NUM_0, cmd, 10/portTICK_PERIOD_MS);
 			i2c_cmd_link_delete(cmd);
-		}
 	}
+}
 
-    ESP_LOGI(TAG, "Printed out text.");
 
-	vTaskDelete(NULL);
+void _invert_text(uint8_t *buf, size_t buflen){
+	uint8_t inverted;
+	for(int i=0; i<buflen; i++){
+		inverted = buf[i];
+		buf[i] = ~inverted;
+	}
 }
