@@ -13,7 +13,7 @@
 #include <freertos/task.h>
 #include <esp_system.h>
 
-#define FIND_SENSOR_INTERVAL 10
+#define SCAN_SENSOR_INTERVAL 2
 
 static const char *TAG = "Main";
 
@@ -21,27 +21,27 @@ const TickType_t xDelay = 2500 / portTICK_PERIOD_MS;
 
 void sensorTask(void* arg)
 {   int find_sensor_tick = 0;
-    
+    scan_sensors();
+
     while(1)
     {
-        get_sensors_data();
-
-        if(find_sensor_tick >= FIND_SENSOR_INTERVAL)
+        vTaskDelay(xDelay); 
+        
+        if(find_sensor_tick++ >= SCAN_SENSOR_INTERVAL)
         {
-            find_new_sensors();
+            scan_sensors();
             find_sensor_tick = 0;
         }
         else
         {
-            vTaskDelay(xDelay); 
+            get_sensors_data();
         }
-        find_sensor_tick++;
     }
-}
 
 void app_main(void)
 {
 #ifdef CONFIG_USE_SD_STORAGE
+}
     init_fs_sdcard();
 #endif
     wifi_init();
@@ -50,5 +50,5 @@ void app_main(void)
     netbiosns_set_name(CONFIG_MDNS_HOST_NAME);   
     init_sensors();
 
-    //xTaskCreatePinnedToCore(sensorTask, "sensorTask", 4096, NULL, 1, NULL, 0);
+    xTaskCreatePinnedToCore(sensorTask, "sensorTask", 4096, NULL, 1, NULL, 1);
 }

@@ -2,9 +2,9 @@
 
     var _updateValues_address = "/api/data"
 
-    var nr_testeres =  8;
+    var nr_testeres =  10;
 
-    var Update_timer = 1000;
+    var Update_timer = 2500;
 
     var testerStatus;
 
@@ -19,8 +19,6 @@
     var w8forbackend  = 0;
 
     const timeTow8 = 1;
-
-    var States = ["Active","Inactive"];
 
 
     var HttpClient = function() 
@@ -39,6 +37,7 @@
     }
 
     var client = new HttpClient();
+    
 
     function update_values() 
     {
@@ -50,7 +49,6 @@
                 {
                     w8forbackend++; 
                 }
-                
                 console.log(ValObj);
 
                 for (var i = 1; i <= nr_testeres; i++) 
@@ -58,48 +56,21 @@
     
                     checkdiv = "sensordiv" + i; 
 
-                    for(key in ValObj) {
+                        if(document.getElementById(checkdiv) != null)
+                        {                        
+                            for (var key in ValObj)
+                            {
 
-                        
-                            if(document.getElementById(checkdiv) != null)
-                            {                          
-
-
-                            //         var newDiv = document.createElement('div');
-                            //         newDiv.id = "testerdiv" + i;
-                            //         newDiv.className = 'container';
-                                    
-                            //         dublicantDiv = document.getElementById('sensordiv1');
-                            //         newDiv.innerHTML = dublicantDiv.innerHTML;
-                    
-                            //         document.getElementById("wrapper").appendChild(newDiv);
-                    
-                            //         queryElements = document.querySelectorAll("[id='ID1']");
-                    
-                            //         queryElements[1].id = "ID" + i;
-                                
-                            //         queryElements = document.querySelectorAll("[id='Status1']");
-                    
-                            //         queryElements[1].id = "Status" + i;
-                    
-                            //         document.getElementById(("SensorName" + i)).innerHTML = "Sensor " + i;
-
-                            //         document.getElementById(checkdiv).style.display = "block";
-                        
-                            //     if(document.getElementById(checkdiv).style.display === "" || document.getElementById(checkdiv).style.display === "none")
-                            //     {
-                            //         document.getElementById(checkdiv).style.display = "block";
-                            //     }
-                                
-                            // }
+                                    if(ValObj[key]["id"] == i)
+                                    {
+                                        console.log("here2");
+                                        document.getElementById("id" + i).innerHTML =  ValObj[key]["id"];
+                                        document.getElementById("temp" + i).innerHTML =  ValObj[key]["temp"];
+                                    }
+                               
+                            }
                        
-                            // if(document.getElementById(checkdiv) != null)
-                            // {
-                                
-                            //     document.getElementById(checkdiv).style.display = "none";                          
-                                
-                         }      
-                    }                                                   
+                        }                                                         
                 }
             });   
     } 

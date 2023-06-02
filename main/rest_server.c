@@ -132,9 +132,16 @@ static esp_err_t data_get_handler(httpd_req_t *req)
     rest_server_context_t *rest_context = (rest_server_context_t *)req->user_ctx;
     char *chunk = rest_context->scratch;
 
-    cJSON curr_data_cJSON = get_data_JSON();
+    cJSON* curr_data_cJSON = cJSON_CreateArray();
 
-    chunk = cJSON_Print(&curr_data_cJSON);
+    if(get_data_JSON(curr_data_cJSON) != ESP_OK)
+    {
+        /* Respond with 500 Internal Server Error */
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Could not get JSON data");
+        return ESP_FAIL;
+    }
+
+    chunk = cJSON_Print(curr_data_cJSON);
    
     httpd_resp_sendstr(req, chunk);
     return ESP_OK;

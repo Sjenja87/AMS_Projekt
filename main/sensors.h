@@ -5,13 +5,13 @@
 #include <string.h>
 #include "esp_err.h"
 #include "sdkconfig.h" 
+#include "ds1820.h"
 
 typedef struct 
 {
     int id;
     float temp;
-    int address;
-    int humidity;
+    ds18x20_addr_t address;
     int isActive;
 }sensor_t;
 
@@ -21,12 +21,20 @@ esp_err_t get_sensors_data();
 
 esp_err_t save_sensor_data();
 
-esp_err_t find_new_sensors();
+esp_err_t scan_sensors();
 
-cJSON get_data_JSON();
+void deactivate_all_cJSON_OBJ();
 
-int search_sens_collection(int addr, int isActive);
+esp_err_t find_and_activate(sensor_t* sensor);
 
-int search_current_JSON_OBJ(sensor_t* sensor);
+esp_err_t append_new_cJSON_Obj(sensor_t* sensor);
+
+void delete_deactive_cJSON_Obj();
+
+void deactivate_all_sensors();
+
+bool create_or_activate( ds18x20_addr_t addr);
+
+esp_err_t get_data_JSON(cJSON* data);
 
 #endif

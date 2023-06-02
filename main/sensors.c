@@ -16,89 +16,119 @@
 
 #endif
 
-#define BUF_SIZE 1000
-
-#define MAX_SENSORS 20
-
 static const char *TAG = "Sensor_Handle";
 
 sensor_t sens_collection[MAX_SENSORS];
 
 cJSON *current_JSON_OBJ;
 
-int curr_address;
-
 SemaphoreHandle_t xMutex;
+
+int last_id = 0;
 
 esp_err_t init_sensors()
 {
-    char buf[BUF_SIZE];
-    if(read_last_save_from_file(SENSORS_DATA_FILE_PATH,buf,'[') == ESP_OK)
-    {
-        current_JSON_OBJ = cJSON_Parse(buf);
-        cJSON *tmpObj;
-        for (int i = 0 ; i < cJSON_GetArraySize(current_JSON_OBJ); i++)
-            {  
-               tmpObj = cJSON_GetArrayItem(current_JSON_OBJ, i);
-               sens_collection[i].id = cJSON_GetObjectItem(tmpObj,"id")->valueint;
-               sens_collection[i].temp = (float)(cJSON_GetObjectItem(tmpObj,"temp")->valuedouble);
-               sens_collection[i].address = cJSON_GetObjectItem(tmpObj,"address")->valueint;
-               sens_collection[i].humidity = cJSON_GetObjectItem(tmpObj,"humidity")->valueint;
-               sens_collection[i].isActive = cJSON_GetObjectItem(tmpObj,"isActive")->valueint;
-            }          
-        }
-        xMutex = xSemaphoreCreateMutex();
-        return ESP_OK;
+    init_ds1820();
+    current_JSON_OBJ = cJSON_CreateArray();
+    xMutex = xSemaphoreCreateMutex();
+    return ESP_OK;
 }
 
 esp_err_t get_sensors_data()
 { 
-    for (int i = 0; i< MAX_SENSORS ;i++)
-    {
-        if(sens_collection[i].isActive)
+    if( xSemaphoreTake( xMutex, ( TickType_t ) 1000 ) == pdTRUE )
+    {   
+        deactivate_all_cJSON_OBJ();
+        for (int i = 0; i< MAX_SENSORS ;i++)
         {
-                // A function that takes a pointer to the sens_collection ithe element,
-                // and uprate temp and humidity.
-                // If sensor is not responding deactivate it;
-            if( xSemaphoreTake( xMutex, ( TickType_t ) 100 ) == pdTRUE )
-            {   
-                if(!search_current_JSON_OBJ(&sens_collection[i]))
-                {
-                    if(sens_collection[i].isActive)
-                    {
-                        cJSON* newItem = cJSON_Parse( "{ \"id\" : 0, \"temp\" : 0.0, \"address\" : 0, \"humidity\" : 0, \"isActive\" : 0}");
-                        cJSON_SetIntValue(cJSON_GetObjectItem(newItem,"id") , sens_collection[i].id );
-                        cJSON_SetIntValue(cJSON_GetObjectItem(newItem,"temp") , sens_collection[i].temp);
-                        cJSON_SetIntValue(cJSON_GetObjectItem(newItem,"address") , sens_collection[i].address);
-                        cJSON_SetIntValue(cJSON_GetObjectItem(newItem,"humidity") , sens_collection[i].humidity);
-                        cJSON_SetIntValue(cJSON_GetObjectItem(newItem,"isActive") , true);
-                        cJSON_AddItemToArray(current_JSON_OBJ,newItem);
-                    }
-                }
-                xSemaphoreGive( xMutex );
-            }
-            else
+            if(sens_collection[i].isActive)
             {
-                return ESP_FAIL;
+                if(ds1820_read_devices(sens_collection[i].address, &sens_collection[i].temp) != ESP_OK)
+                {
+                    sens_collection[i].isActive = false;
+                    continue;
+                }
+                sens_collection[i].temp = sens_collection[i].temp * 10;
+                if(find_and_activate(&sens_collection[i]) != ESP_OK)
+                {
+                    append_new_cJSON_Obj(&sens_collection[i]);
+                }
             }
         }
+        delete_deactive_cJSON_Obj();
+        xSemaphoreGive( xMutex );
     }
-    //ESP_LOGI(TAG,"%s",cJSON_Print(current_JSON_OBJ));
+    else
+    {
+        return ESP_FAIL;
+    } 
     return save_sensor_data();
 }
-    
-cJSON get_data_JSON()
+
+void delete_deactive_cJSON_Obj()
 {
+    cJSON *tmpObj;
+    for (int i = 0 ; i < cJSON_GetArraySize(current_JSON_OBJ); i++)
+    {
+        tmpObj = cJSON_GetArrayItem(current_JSON_OBJ, i);
+        if(cJSON_GetObjectItem(tmpObj,"isActive")->valueint == false)
+        {
+            cJSON_DeleteItemFromArray(current_JSON_OBJ,i);
+        }
+    }
+}
+
+esp_err_t append_new_cJSON_Obj(sensor_t* sensor)
+{
+        cJSON* newItem = cJSON_Parse( "{ \"id\" : 0, \"temp\" : 0.0, \"address\" : 0, \"isActive\" : 0}");
+        cJSON_SetIntValue(cJSON_GetObjectItem(newItem,"id") , sensor->id);
+        cJSON_SetNumberValue(cJSON_GetObjectItem(newItem,"temp") , (double)sensor->temp);
+        cJSON_SetIntValue(cJSON_GetObjectItem(newItem,"address") , sensor->address);
+        cJSON_SetIntValue(cJSON_GetObjectItem(newItem,"isActive") , true);
+        cJSON_AddItemToArray(current_JSON_OBJ,newItem);
+    
+    return ESP_OK;
+}
+
+esp_err_t find_and_activate(sensor_t* sensor)
+{
+    cJSON *tmpObj;
+    for (int i = 0 ; i < cJSON_GetArraySize(current_JSON_OBJ); i++)
+    {  
+        tmpObj = cJSON_GetArrayItem(current_JSON_OBJ, i);
+        if(sensor->id == cJSON_GetObjectItem(tmpObj,"id")->valueint)
+        {
+            cJSON_SetIntValue(cJSON_GetObjectItem(tmpObj,"isActive") , true);
+            cJSON_SetNumberValue(cJSON_GetObjectItem(tmpObj,"temp") , (double)sensor->temp);
+            ESP_LOGI(TAG,"ID: %d , Temp: %.3f", sensor->id ,sensor->temp);
+            return ESP_OK;
+        }  
+    } 
+    return ESP_FAIL;      
+}
+
+esp_err_t get_data_JSON(cJSON* data)
+{
+    esp_err_t resp;
     if( xSemaphoreTake( xMutex, ( TickType_t ) 100 ) == pdTRUE )
     {
-        cJSON ret = *current_JSON_OBJ;
+        if(current_JSON_OBJ != NULL)
+        {
+            *data = *current_JSON_OBJ;
+             resp = ESP_OK;
+        }
+        else
+        {
+            resp = ESP_FAIL;
+        }
+       
         xSemaphoreGive( xMutex );
 
-        return ret;
+        return resp;
     }  
     else
     {
-        return *current_JSON_OBJ;
+        return ESP_FAIL;
     }
 
 }
@@ -106,71 +136,68 @@ cJSON get_data_JSON()
 esp_err_t save_sensor_data()
 {
     char* string_to_save = cJSON_PrintUnformatted(current_JSON_OBJ);
-    return append_to_file(SENSORS_DATA_FILE_PATH,string_to_save);
-
+    if(string_to_save != NULL)
+    {
+        return append_to_file(SENSORS_DATA_FILE_PATH,string_to_save);
+    }
+    return ESP_FAIL;
 }
 
-esp_err_t find_new_sensors()
+esp_err_t scan_sensors()
 {   
-   int addr = curr_address;
-   do{
-        if(addr == 0 || addr == 1)
+   ds18x20_addr_t addrs[MAX_SENSORS];
+   size_t sensor_count = 0;
+   if(ds1820_scan_devices(addrs, &sensor_count) != ESP_OK)
+   {
+      return ESP_FAIL;
+   }
+   ESP_LOGI(TAG, "FOUND: %d SENSORS", sensor_count);
+   deactivate_all_sensors();
+   for(int i = 0; i< sensor_count; i++)
+   {
+        if(create_or_activate(addrs[i]))
         {
-            if(!search_sens_collection(addr, true))
+            for(int n = 0 ; n < MAX_SENSORS; n++)
             {
-                for(int i = 0; i < MAX_SENSORS; i++)
+                if(sens_collection[n].id == 0)
                 {
-                    if(sens_collection[i].id == 0)
-                    {
-                        sens_collection[i].id = sens_collection[i-1].id + 1; 
-                        sens_collection[i].address = addr;
-                        sens_collection[i].isActive = true;
-                    }
+                    sens_collection[n].id = last_id++;
+                    sens_collection[n].address = addrs[i];
+                    sens_collection[n].isActive = true;
                 }
             }
         }
-        else
-        {
-            search_sens_collection(addr, false);
-        }
-        addr++;
-    } while(addr % 10 != 0);
-    curr_address = addr;
+   }
     return ESP_OK;
 }
 
-int search_sens_collection(int addr, int isActive)
+bool create_or_activate( ds18x20_addr_t addr)
 {
-    for ( int i = 0; i < MAX_SENSORS; i++)
+    for(int i = 0; i < MAX_SENSORS; i++)
     {
         if(sens_collection[i].address == addr)
         {
-            sens_collection[i].isActive = isActive;
-            return true;
+            sens_collection[i].isActive = true;
+            return false;
         }
     }
-    return false;    
+    return true;
 }
 
-int search_current_JSON_OBJ(sensor_t* sensor)
+void deactivate_all_cJSON_OBJ()
 {
     cJSON *tmpObj;
-    for (int n = 0 ; n < cJSON_GetArraySize(current_JSON_OBJ); n++)
-    {   
-        tmpObj = cJSON_GetArrayItem(current_JSON_OBJ, n);
-        if(sensor->address == cJSON_GetObjectItem(tmpObj,"address")->valueint)
-        {
-            if(sensor->isActive)
-            {
-                cJSON_SetIntValue(cJSON_GetObjectItem(tmpObj,"temp") , sens_collection->temp);
-                cJSON_SetIntValue(cJSON_GetObjectItem(tmpObj,"humidity") , sens_collection->humidity);
-            }
-            else
-            {
-                cJSON_DeleteItemFromArray(current_JSON_OBJ,n);
-            }
-            return true;
-        }
+    for (int i = 0 ; i < cJSON_GetArraySize(current_JSON_OBJ); i++)
+    {  
+        tmpObj = cJSON_GetArrayItem(current_JSON_OBJ, i);
+        cJSON_SetIntValue(cJSON_GetObjectItem(tmpObj,"isActive") , false);
+    }          
+}
+
+void deactivate_all_sensors()
+{
+    for(int i = 0; i < MAX_SENSORS; i++)
+    {
+        sens_collection[i].isActive = false;
     }
-    return false;   
 }
