@@ -3,6 +3,9 @@
 #include "esp_log.h"
 #include "font.h"
 #include <string.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/semphr.h>
+#include "cJSON.h"
 
 #define I2C_MASTER_SDA_IO GPIO_NUM_21
 #define I2C_MASTER_SCL_IO GPIO_NUM_22
@@ -135,4 +138,23 @@ void _invert_text(uint8_t *buf, size_t buflen){
 		inverted = buf[i];
 		buf[i] = ~inverted;
 	}
+}
+
+
+esp_err_t update_display_values(){
+	cJSON *tmpObj;
+	float temp;
+	char text[15];
+	clear_oled();
+
+	if( xSemaphoreTake( xMutex, ( TickType_t ) 100 ) == pdTRUE ){
+		for (int i = 0 ; i < cJSON_GetArraySize(current_JSON_OBJ); i++){  
+            tmpObj = cJSON_GetArrayItem(current_JSON_OBJ, i);
+            temp = (float)(cJSON_GetObjectItem(tmpObj,"temp")->valuedouble);
+			sprintf(text, "Sensor%i: %.2f", i, temp);
+			oled_println(text, false, i); // might break if there are to many sensors 
+        }          
+    }
+    xSemaphoreGive( xMutex );
+    return ESP_OK;
 }
