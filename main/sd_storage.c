@@ -30,11 +30,7 @@ esp_err_t init_fs_sdcard(void)
     gpio_set_pull_mode(PIN_NUM_MISO, GPIO_PULLUP_ONLY); 
   
     esp_vfs_fat_sdmmc_mount_config_t mount_config = {
-#ifdef CONFIG_FORMAT_IF_MOUNT_FAILED
-        .format_if_mount_failed = true,
-#else
         .format_if_mount_failed = false,
-#endif // FORMAT_IF_MOUNT_FAILED
         .max_files = 5,
         .allocation_unit_size = 16 * 1024
     };

@@ -12,6 +12,7 @@
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 #include <esp_system.h>
+#include "OLED.h"
 
 #define SCAN_SENSOR_INTERVAL 2
 
@@ -27,6 +28,7 @@ void sensorTask(void* arg)
     {
         vTaskDelay(xDelay); 
         
+
         if(find_sensor_tick++ >= SCAN_SENSOR_INTERVAL)
         {
             scan_sensors();
@@ -35,13 +37,14 @@ void sensorTask(void* arg)
         else
         {
             get_sensors_data();
+            update_display_values();
         }
     }
+}
 
 void app_main(void)
 {
 #ifdef CONFIG_USE_SD_STORAGE
-}
     init_fs_sdcard();
 #endif
     wifi_init();
@@ -49,6 +52,8 @@ void app_main(void)
     netbiosns_init();
     netbiosns_set_name(CONFIG_MDNS_HOST_NAME);   
     init_sensors();
+    init_i2c_driver();
+    init_OLED();
 
     xTaskCreatePinnedToCore(sensorTask, "sensorTask", 4096, NULL, 1, NULL, 1);
 }
